@@ -1,0 +1,29 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:21.1.1
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./keycloak-setup/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    ports:
+      - "8080:8080"
+    #healthcheck:
+     # test: ["CMD-SHELL", "curl", "-f", "http://localhost:8080/realms/CentralIAM/.well-known/openid-configuration"]
+      #interval: 10s
+      #timeout: 5s
+      #retries: 10
+
+  flask-app:
+    build:
+      context: ./flask-api
+    environment:
+      OIDC_ISSUER: http://localhost:8080/realms/CentralIAM
+      OIDC_JWKS_URL: http://keycloak:8080/realms/CentralIAM/protocol/openid-connect/certs
+      OIDC_CLIENT_ID: intranet
+    ports:
+      - "5000:5000"
+    depends_on:
+      - keycloak
+        #condition: service_healthy
